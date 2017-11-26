@@ -16,7 +16,7 @@ def adjacentZips(zips):
 
 def main():
 	zips = {}
-	sf = shapefile.Reader("info")
+	sf = shapefile.Reader("Maryland")
 	srs = sf.shapeRecords()
 
 	for sr in srs:
