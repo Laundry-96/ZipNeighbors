@@ -16,16 +16,16 @@ def adjacentZips(zips):
 
 def main():
 	zips = {}
-	sf = shapefile.Reader("Maryland")
+	sf = shapefile.Reader("USA")
 	srs = sf.shapeRecords()
 
 	for sr in srs:
-		if sr.record[8] == '':
+		if sr.record[0] == '':
 			print("don't worry about it")
-		elif sr.record[8] in zips:
-			zips[sr.record[8]] = zips[sr.record[8]] | set(sr.shape.points)
+		elif sr.record[0] in zips:
+			zips[sr.record[0]] = zips[sr.record[0]] | set(sr.shape.points)
 		else:
-			zips[sr.record[8]] = set(sr.shape.points)
+			zips[sr.record[0]] = set(sr.shape.points)
 	
 	n = adjacentZips(zips)
 
