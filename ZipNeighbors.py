@@ -259,7 +259,7 @@ def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positio
     dist = []
     dist.append(seed)
 
-    while(dist_pop < ((total_population / num_dists) - (total_population * num_dists * .0019))):
+    while(dist_pop < ((total_population / num_dists) - (total_population * num_dists * .0025))):
       best_neighbor = find_best_neighbor(dist, adjacent_zip_codes, free_zips, population_data, zip_positions)
 
       free_zips = free_zips - {best_neighbor}
