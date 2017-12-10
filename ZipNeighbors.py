@@ -1,7 +1,8 @@
 import shapefile
+
+import matplotlib
 import matplotlib.pyplot as plt
 import random
-import matplotlib
 import math
 import sys
 
@@ -12,7 +13,6 @@ from PyQt5.QtGui import QIcon
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-matplotlib.use('Qt5Agg')
 """
 What: Creates a dictionary lookup for zips to population of that zip
 In: None
@@ -136,19 +136,12 @@ def is_a_neighbor(zips, adjacent_zip_codes):
 What: Return random seed zip codes
 In: num_dists: Number of districts to create, {Zip Code : Adjacent Zip Codes}
 Out: [distinct zip codes that are not next to each other with len(num_dists)]"""
-def get_random_dist_seeds(adjacent_zip_codes, num_dists):
-  districts = []
-  first_run = True
-  while(not is_a_neighbor(districts, adjacent_zip_codes) or first_run):
-    districts = []
-    first_run = False
-    zips = list(adjacent_zip_codes.keys())
-    for i in range(num_dists):
-      seed = random.randint(0,len(zips) - 1)
-      districts.append(zips[seed])
-      zips.pop(seed)
+def get_random_dist_seed(free_zips):
 
-  return districts
+  zips = list(free_zips)
+  seed = random.randint(0,len(zips) - 1)
+  return zips[seed]
+
 """
 What: Computes the distances between two zip codes
 In: (Center point of zip code a), (Center point of zip code b)
@@ -209,10 +202,12 @@ def find_best_neighbor(district, adjacent_zip_codes, free_zips, population_data,
     print("Break here bitchhh")
   possible_solutions = set()
 
-  for dist in district:
+  for zip in district:
     try:
-      for sol in adjacent_zip_codes[dist]:
+      for sol in adjacent_zip_codes[zip]:
         possible_solutions.add(sol)
+    except TypeError:
+      print("WHYYY")
     except KeyError:
       print(sol)
       print("why")
@@ -239,6 +234,7 @@ def find_best_neighbor(district, adjacent_zip_codes, free_zips, population_data,
       actual_solutions.append(solution)
 
   if best_solution != None:
+    print("NO BEST SOLUTION")
     actual_solutions.append(best_solution)
 
   #YIKE! Look for solutions that are CLOSE to us
@@ -247,14 +243,51 @@ def find_best_neighbor(district, adjacent_zip_codes, free_zips, population_data,
     #if('2' in actual_solutions):
      # print("wtf")
 
-  return actual_solutions
+  return actual_solutions[0]
+
+def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positions, total_population):
+  #Get a list of all zip codes that are available
+  free_zips = set(adjacent_zip_codes.keys())
+  pop_per_dist = total_population / num_dists
+  #Get random districts to start off with
+  districts = []
+  for i in range(num_dists):
+    dist_pop = 0
+    print(len(free_zips))
+    seed = get_random_dist_seed(free_zips)
+    free_zips = free_zips - {seed}
+    dist = []
+    dist.append(seed)
+
+    while(dist_pop < ((total_population / num_dists) - (total_population * num_dists * .0012w))):
+      best_neighbor = find_best_neighbor(dist, adjacent_zip_codes, free_zips, population_data, zip_positions)
+
+      free_zips = free_zips - {best_neighbor}
+      try:
+        dist_pop += population_data[best_neighbor]
+      except KeyError:
+        dist_pop += 0
+      dist.append(best_neighbor)
+
+    districts.append(dist)
+
+  for free_zip in free_zips:
+    adj = set(adjacent_zip_codes[free_zip])
+    for district in districts:
+      if(not set(district).isdisjoint(adj)):
+        district.append(free_zip)
+        break
+
+  return districts
+
+
 
 
 """
 In: Number of districts to make, {Zip Code : [Adjacent Zip Codes]}, {Zip Code : Population}
 Out: [set(continuable zips) * num_dists]
 """
-def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positions, total_population):
+"""def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positions, total_population):
   #Get a list of all zip codes that are available
   free_zips = adjacent_zip_codes.keys()
   pop_per_dist = total_population / num_dists
@@ -293,7 +326,7 @@ def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positio
     ###print(dist)
 
   return districts
-
+"""
 def main():
 
   colors = {"firebrick", "darksalmon", "tan", "gold", "lightseagreen", "darkturquoise", "deepskyblue", "navy", "royalblue", "coral", "peachpuff", "lawngreen", "cadetblue", "skyblue", "hotpink", "pink", "indigo", "yellow", "aqua", "pink", "crimson", "cadetblue", "maroon", "steelblue"}
@@ -320,7 +353,7 @@ def main():
   num_dists = 8
   dists = create_districts(num_dists, adjacent_zipcodes, zip_population, zip_stuff, total_population)
 
-  cool = False
+  """cool = False
   while(not cool):
     cool = True
     for dist in dists:
@@ -328,8 +361,8 @@ def main():
         cool = False
     if not cool:
       dists = create_districts(num_dists, adjacent_zipcodes, zip_population, zip_stuff, total_population)
-
-
+  """
+  print(((total_population / num_dists) - (total_population * num_dists * .00001)))
   fig = plt.figure()
   ax = fig.add_subplot(111)
   plt.xlim([-80, -60])
@@ -353,7 +386,7 @@ def main():
 
       pointsaaa[zip].append((point[0], point[1]))
 
-    print(pointsaaa[zip])
+    #print(pointsaaa[zip])
 
   for dist in dists:
     if(colors == None):
