@@ -259,7 +259,7 @@ def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positio
     dist = []
     dist.append(seed)
 
-    while(dist_pop < ((total_population / num_dists) - (total_population * num_dists * .0012w))):
+    while(dist_pop < ((total_population / num_dists) - (total_population * num_dists * .0019))):
       best_neighbor = find_best_neighbor(dist, adjacent_zip_codes, free_zips, population_data, zip_positions)
 
       free_zips = free_zips - {best_neighbor}
@@ -270,13 +270,23 @@ def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positio
       dist.append(best_neighbor)
 
     districts.append(dist)
-
+  
+  print(len(free_zips))
+  i = 0
   for free_zip in free_zips:
+    i+=1
+    print("runngin: ", i)
     adj = set(adjacent_zip_codes[free_zip])
+    found = False
     for district in districts:
       if(not set(district).isdisjoint(adj)):
+        found = True
         district.append(free_zip)
+        free_zips = free_zips - {free_zip}
         break
+    if(not found):
+      districts[0].append(free_zip)
+      free_zips = free_zips - {free_zip}
 
   return districts
 
@@ -341,52 +351,26 @@ def main():
   adjacent_zipcodes = adjacent_zips(zip_points)
   zip_population = zip_population_generator()
   zip_stuff = zip_codes_place_generator(zip_points)
-  #for key in zip_codes.keys():
-    #if(key not in zip_population.keys()):
-      #print("zip code: ", key, " does not have population data")
-
+  
   total_population = 0
   for key in zip_population.keys():
     total_population += zip_population[key]
 
- # print("Population: ", total_population)
-  num_dists = 8
-  dists = create_districts(num_dists, adjacent_zipcodes, zip_population, zip_stuff, total_population)
-
-  """cool = False
-  while(not cool):
-    cool = True
-    for dist in dists:
-      if not len(dist) > ((len(adjacent_zipcodes.keys()) - 20) / num_dists):
-        cool = False
-    if not cool:
-      dists = create_districts(num_dists, adjacent_zipcodes, zip_population, zip_stuff, total_population)
-  """
-  print(((total_population / num_dists) - (total_population * num_dists * .00001)))
-  fig = plt.figure()
-  ax = fig.add_subplot(111)
-  plt.xlim([-80, -60])
-  plt.ylim([20, 40])
-
   pointsaaa = {}
 
-  """for shape in srs:
-    points = shape.shape.points
-
-    ap = plt.Polygon(points, fill=False, edgecolor="k")
-    ap.set_fill(True)
-    ap.set_color("red")
-    ax.add_patch(ap)
-
-  plt.show()
-"""
   for zip in zip_points.keys():
     pointsaaa[zip] = []
     for point in zip_points[zip]:
 
       pointsaaa[zip].append((point[0], point[1]))
 
-    #print(pointsaaa[zip])
+  num_dists = 10
+  dists = create_districts(num_dists, adjacent_zipcodes, zip_population, zip_stuff, total_population)
+  
+  fig = plt.figure()
+  ax = fig.add_subplot(111)
+  plt.xlim([-80, -60])
+  plt.ylim([20, 40])
 
   for dist in dists:
     if(colors == None):
