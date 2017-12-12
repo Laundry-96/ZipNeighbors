@@ -150,6 +150,35 @@ Out: distance
 def compute_dist(point1, point2):
   return math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
 
+
+def get_closest_district(zip, districts, zip_points):
+  smallest_dist = None
+  cur_points = zip_points[zip]
+  for zip1 in zip_points.keys():
+    is_in_a_dist = False
+    for dist in districts:
+      if not {zip1}.isdisjoint(set(dist)):
+        is_in_a_dist = True
+    if not is_in_a_dist:
+      continue
+
+    if zip1 == zip:
+      continue
+
+    if(smallest_dist == None):
+      smallest_dist = zip1
+
+    if compute_dist(zip_points[zip1], zip_points[zip]) < compute_dist(zip_points[smallest_dist], zip_points[zip]):
+      smallest_dist = zip1
+
+  for i in range(len(districts)):
+    if not {smallest_dist}.isdisjoint(set(districts[i])):
+      smallest_dist = i
+      break
+
+  return smallest_dist
+
+
 """
 What: Gets the closest zip code to a district that has the highest population (out of 5)
 In: [Zips that make up a district], {Zip Code : [(Points belonging to zip code)], {Zip codes that have not been put into a district yet}, {Zip code : Population}
@@ -234,16 +263,19 @@ def find_best_neighbor(district, adjacent_zip_codes, free_zips, population_data,
       actual_solutions.append(solution)
 
   if best_solution != None:
-    print("NO BEST SOLUTION")
+    #print("NO BEST SOLUTION")
     actual_solutions.append(best_solution)
 
   #YIKE! Look for solutions that are CLOSE to us
-  if actual_solutions == []:
-    actual_solutions.append( get_closest(district, zip_positions, free_zips, population_data))
+  #if actual_solutions == []:
+    #actual_solutions.append( get_closest(district, zip_positions, free_zips, population_data))
     #if('2' in actual_solutions):
      # print("wtf")
 
-  return actual_solutions[0]
+  return actual_solutions
+
+
+
 
 def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positions, total_population):
   #Get a list of all zip codes that are available
@@ -259,84 +291,42 @@ def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positio
     dist = []
     dist.append(seed)
 
-    while(dist_pop < ((total_population / num_dists) - (total_population * num_dists * .0025))):
-      best_neighbor = find_best_neighbor(dist, adjacent_zip_codes, free_zips, population_data, zip_positions)
-
-      free_zips = free_zips - {best_neighbor}
-      try:
-        dist_pop += population_data[best_neighbor]
-      except KeyError:
-        dist_pop += 0
-      dist.append(best_neighbor)
+    while(dist_pop < ((total_population / num_dists) - (total_population * num_dists * .001))):
+      to_add = find_best_neighbor(dist, adjacent_zip_codes, free_zips, population_data, zip_positions)
+      if to_add == []:
+        break
+      free_zips = free_zips - set(to_add)
+      for zip in to_add:
+        try:
+          dist_pop += population_data[zip]
+        except KeyError:
+          dist_pop += 0
+        dist.append(zip)
 
     districts.append(dist)
   
   print(len(free_zips))
   i = 0
-  for free_zip in free_zips:
-    i+=1
-    print("runngin: ", i)
-    adj = set(adjacent_zip_codes[free_zip])
-    found = False
-    for district in districts:
-      if(not set(district).isdisjoint(adj)):
-        found = True
-        district.append(free_zip)
-        free_zips = free_zips - {free_zip}
-        break
-    if(not found):
-      districts[0].append(free_zip)
+
+  while not len(free_zips) == 0:
+    for free_zip in free_zips:
+      i+=1
+      print("running: ", i)
+      adj = set(adjacent_zip_codes[free_zip])
+      found = False
+      for district in districts:
+        if(not set(district).isdisjoint(adj)):
+          found = True
+          district.append(free_zip)
+          free_zips = free_zips - {free_zip}
+          break
+      if(not found):
+
+        districts[get_closest_district(free_zip, districts, zip_positions)].append(free_zip)
       free_zips = free_zips - {free_zip}
 
   return districts
 
-
-
-
-"""
-In: Number of districts to make, {Zip Code : [Adjacent Zip Codes]}, {Zip Code : Population}
-Out: [set(continuable zips) * num_dists]
-"""
-"""def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positions, total_population):
-  #Get a list of all zip codes that are available
-  free_zips = adjacent_zip_codes.keys()
-  pop_per_dist = total_population / num_dists
-  #Get random districts to start off with
-  districts_seeds = get_random_dist_seeds(adjacent_zip_codes, num_dists)
-
-  #Convert the seeds to a list of lists, and remove them from the "free" list
-  districts = []
-  for dist in districts_seeds:
-    districts.append({dist})
-    free_zips = free_zips - set(dist)
-
-  #print("Break here")
-  last_run = 0
-  while(len(free_zips) != 0):
-    #print(free_zips)
-    #print(len(free_zips))
-    for i in range(len(districts)):
-      if(len(free_zips) == 0):
-        print("WE GUCCI")
-        return districts
-      sol = find_best_neighbor(districts[i], adjacent_zip_codes, free_zips, population_data, zip_positions)
-      if sol == []:
-        last_run+=1
-      else:
-        last_run = 0
-
-      if (last_run == num_dists):
-        print(free_zips)
-        return districts
-
-      free_zips = free_zips - set(sol)
-      districts[i] = list(set(districts[i]) | set(sol))
-
-  #for dist in districts:
-    ###print(dist)
-
-  return districts
-"""
 def main():
 
   colors = {"firebrick", "darksalmon", "tan", "gold", "lightseagreen", "darkturquoise", "deepskyblue", "navy", "royalblue", "coral", "peachpuff", "lawngreen", "cadetblue", "skyblue", "hotpink", "pink", "indigo", "yellow", "aqua", "pink", "crimson", "cadetblue", "maroon", "steelblue"}
@@ -364,7 +354,7 @@ def main():
 
       pointsaaa[zip].append((point[0], point[1]))
 
-  num_dists = 10
+  num_dists = 12
   dists = create_districts(num_dists, adjacent_zipcodes, zip_population, zip_stuff, total_population)
   
   fig = plt.figure()
