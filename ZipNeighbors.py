@@ -1,15 +1,16 @@
 import shapefile
-
-import matplotlib
 import matplotlib.pyplot as plt
 import random
+import matplotlib
 import math
 import sys
-
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMenu, QVBoxLayout, QSizePolicy, QMessageBox, QWidget, QPushButton
-from PyQt5.QtGui import QIcon
-
-
+import numpy as np
+import pyqtgraph as pg
+from matplotlib.widgets import Slider, Button, RadioButtons
+from PyQt5 import QtGui, QtCore
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMenu, QVBoxLayout, QSizePolicy, QMessageBox, QWidget, QPushButton, QLabel, QRadioButton, QCheckBox, QGridLayout, QGroupBox, QSlider, QLineEdit
+from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -304,14 +305,14 @@ def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positio
         dist.append(zip)
 
     districts.append(dist)
-  
+
   print(len(free_zips))
   i = 0
 
   while not len(free_zips) == 0:
     for free_zip in free_zips:
       i+=1
-      print("running: ", i)
+#      print("running: ", i)
       adj = set(adjacent_zip_codes[free_zip])
       found = False
       for district in districts:
@@ -327,9 +328,9 @@ def create_districts(num_dists, adjacent_zip_codes, population_data, zip_positio
 
   return districts
 
-def main():
+def main(districtNum):
 
-  colors = {"firebrick", "darksalmon", "tan", "gold", "lightseagreen", "darkturquoise", "deepskyblue", "navy", "royalblue", "coral", "peachpuff", "lawngreen", "cadetblue", "skyblue", "hotpink", "pink", "indigo", "yellow", "aqua", "pink", "crimson", "cadetblue", "maroon", "steelblue"}
+  colors = {"firebrick", "darksalmon", "tan", "gold", "lightseagreen", "darkturquoise", "deepskyblue", "navy", "royalblue", "coral", "peachpuff", "lawngreen", "cadetblue", "skyblue", "hotpink", "pink", "indigo", "yellow", "aqua", "pink", "crimson", "cadetblue", "maroon", "steelblue", "goldenrod", "lightsalmon", "lightskyblue", "limegreen", "magenta", "midnightblue", "palegreen", "slateblue" }
 
   sf = shapefile.Reader("Maryland")
   srs = sf.shapeRecords()
@@ -341,7 +342,7 @@ def main():
   adjacent_zipcodes = adjacent_zips(zip_points)
   zip_population = zip_population_generator()
   zip_stuff = zip_codes_place_generator(zip_points)
-  
+
   total_population = 0
   for key in zip_population.keys():
     total_population += zip_population[key]
@@ -354,13 +355,13 @@ def main():
 
       pointsaaa[zip].append((point[0], point[1]))
 
-  num_dists = 12
+  num_dists = districtNum
   dists = create_districts(num_dists, adjacent_zipcodes, zip_population, zip_stuff, total_population)
-  
+
   fig = plt.figure()
   ax = fig.add_subplot(111)
-  plt.xlim([-80, -60])
-  plt.ylim([20, 40])
+  plt.xlim([-80, -74.5])
+  plt.ylim([37, 40])
 
   for dist in dists:
     if(colors == None):
@@ -374,9 +375,130 @@ def main():
 
         ax.add_patch(ap)
 
-  plt.show()
+  #Remove axis
+  plt.axis('off')
+
+  #Save generated map
+  plt.savefig("gerry.png")
+
   plt.close()
 
 
+class Window(QWidget):
+  def __init__(self):
+
+    #Setup default window
+    super(Window,self).__init__()
+    self.title = 'District Modifier'
+    self.icon = 'Logo.png'
+    self.left = 10
+    self.top = 10
+    self.width = 650
+    self.height = 480
+
+    #Initialize user interface
+    self.initUI()
+
+
+  def initUI(self):
+
+    #Set title of application
+    self.setWindowTitle(self.title)
+    self.setWindowIcon(QIcon(self.icon))
+    self.setGeometry(self.left, self.top, self.width, self.height)
+    pixmap = QPixmap("gerry.png")
+
+
+    #show initial picture with base 8 districts
+    self.label = QLabel(self)
+    self.label.setPixmap(pixmap)
+    self.resize(pixmap.width(),pixmap.height())
+    self.show()
+    grid = QGridLayout()
+    grid.addWidget(self.createExampleGroup(), 1, 0)
+    self.setLayout(grid)
+
+  def generate(self):
+    main(self.slider.value())
+
+    pixmap = QPixmap("gerry.png")
+    self.label.setPixmap(QPixmap('gerry.png'))
+    self.resize(pixmap.width(),pixmap.height())
+    #self.show()
+    print(self.slider.value())
+
+
+  def createExampleGroup(self):
+    Form = QWidget()
+    Form.resize(5,5)
+
+    groupBox = QGroupBox()
+
+    radio1 = QRadioButton("&Number of Districts")
+
+    self.textbox = QLineEdit(Form)
+    self.textbox.resize(5,5)
+    sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    sizePolicy.setHorizontalStretch(0)
+    sizePolicy.setVerticalStretch(0)
+    sizePolicy.setHeightForWidth(self.textbox.sizePolicy().hasHeightForWidth())
+    self.textbox.setSizePolicy(sizePolicy)
+    self.textbox.setReadOnly(True)
+
+    self.slider = QSlider(Qt.Horizontal)
+    self.slider.setFocusPolicy(Qt.StrongFocus)
+    self.slider.setTickPosition(QSlider.TicksBothSides)
+    self.slider.setTickInterval(1)
+    self.slider.setSingleStep(1)
+    self.slider.setMaximum(30)
+    self.slider.setMinimum(1)
+        #radio1.setChecked(True)
+
+    self.textbox.setText("1")
+
+    radio2 = QRadioButton("&Democrat or Republican")
+    slider2 = QSlider(Qt.Horizontal)
+    slider2.setFocusPolicy(Qt.StrongFocus)
+    slider2.setTickPosition(QSlider.TicksBothSides)
+    slider2.setTickInterval(1)
+    slider2.setSingleStep(1)
+    slider2.setMaximum(10)
+    slider2.setMinimum(-10)
+        #radio2.setChecked(True)
+
+    generateButton = QPushButton("Generate")
+    generateButton.resize(100,32)
+    generateButton.move(50,50)
+
+    generateButton.clicked.connect(self.generate)
+
+    self.slider.valueChanged.connect(self.sliderUpdate)
+
+    vbox = QVBoxLayout()
+    vbox.addStretch(2)
+    vbox.addWidget(radio1)
+    vbox.addWidget(self.textbox)
+    vbox.addWidget(self.slider)
+    vbox.addWidget(radio2)
+    vbox.addWidget(slider2)
+    vbox.addWidget(generateButton)
+
+    groupBox.setLayout(vbox)
+#    self.setLayout(vbox)
+
+    return groupBox
+
+  def sliderUpdate(self):
+    value = str(self.slider.value())
+    self.textbox.setText(value)
+
+
+
+
+
 if(__name__ == '__main__'):
-  main()
+  main(8)
+  app = QApplication(sys.argv)
+  ex = Window()
+#  ex.show()
+  sys.exit(app.exec_())
